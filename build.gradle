@@ -1,0 +1,113 @@
+/*
+ * Copyright (c) 2020 Warp Studios
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+plugins {
+    id 'java'
+    id 'maven'
+    id 'com.github.johnrengelman.shadow' version '4.0.0'
+    id 'maven-publish'
+}
+
+compileJava.options.encoding = 'UTF-8'
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+version '0.1'
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    jcenter()
+
+    maven {
+        name "GitHubPackages"
+        url "https://maven.pkg.github.com/bywarp/lightkit4j"
+        credentials {
+            if (System.getenv("CI") == null || System.getenv("CI").toLowerCase() != 'true') {
+                username = GITHUB_USER
+                password = GITHUB_TOKEN
+                return
+            }
+
+            username = System.getenv("USERNAME")
+            password = System.getenv("TOKEN")
+        }
+    }
+}
+
+configurations {
+    extraLibs
+}
+
+dependencies {
+    compile group: 'co.bywarp', name: 'lightkit', version: '0.1.3', changing: true
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+    compile group: 'org.json', name: 'json', version: '20180130'
+    compile group: 'redis.clients', name: 'jedis', version: '2.9.0'
+
+    compile group: 'org.projectlombok', name: 'lombok', version: '1.18.10'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.10'
+
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.4.0'
+    testRuntimeOnly group: 'org.junit.platform', name: 'junit-platform-launcher', version: '1.6.2'
+    testRuntimeOnly group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.6.2'
+    testRuntimeOnly group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.6.2'
+    testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.18.10'
+}
+
+shadowJar {
+    exclude "META-INF/*.SF"
+    exclude "META-INF/*.DSA"
+    exclude "META-INF/*.RSA"
+
+    classifier = null
+
+    manifest {
+        attributes 'Main-Class': 'co.bywarp.stash.Stash'
+    }
+}
+
+publishing {
+    publications {
+        shadow(MavenPublication) { publication ->
+            groupId = "co.bywarp"
+            artifactId = "stash"
+            project.shadow.component(publication)
+        }
+    }
+
+    repositories {
+        maven {
+            url "https://maven.pkg.github.com/bywarp/Stash"
+            credentials {
+                username = System.getenv("USERNAME")
+                password = System.getenv("TOKEN")
+            }
+        }
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
